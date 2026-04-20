@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Tool Tạo Email</title>
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(135deg, #0b3d91, #00c3ff);
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+input, button {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 8px;
+    border: none;
+}
+button {
+    background: #00c3ff;
+    cursor: pointer;
+}
+.hidden { display: none; }
+
+.input-box {
+    position: relative;
+    display: inline-block;
+}
+.toggle-btn {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    background: #ccc;
+    color: black;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+.table {
+    width: 95%;
+    margin: 20px auto;
+    border-collapse: collapse;
+    background: white;
+    color: black;
+}
+.table th, .table td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+.table th {
+    background: #00c3ff;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Tool Tạo Email</h2>
+
+<!-- LOGIN -->
+<div id="loginBox">
+    <h3>Đăng nhập</h3>
+    <input id="loginUser" placeholder="Tài khoản"><br>
+
+    <div class="input-box">
+        <input id="loginPass" type="password" placeholder="Mật khẩu">
+        <span class="toggle-btn" onclick="toggleInput('loginPass', this)">Hiện</span>
+    </div>
+
+    <br>
+    <button onclick="login()">Đăng nhập</button>
+    <p><button onclick="showRegister()">Đăng ký</button></p>
+</div>
+
+<!-- REGISTER -->
+<div id="registerBox" class="hidden">
+    <h3>Đăng ký</h3>
+    <input id="regUser" placeholder="Tài khoản"><br>
+
+    <div class="input-box">
+        <input id="regPass" type="password" placeholder="Mật khẩu">
+        <span class="toggle-btn" onclick="toggleInput('regPass', this)">Hiện</span>
+    </div>
+
+    <br>
+    <button onclick="register()">Tạo</button>
+    <p><button onclick="showLogin()">Quay lại</button></p>
+</div>
+
+<!-- KEY -->
+<div id="keyBox" class="hidden">
+    <h3>Nhập KEY (Admin)</h3>
+    <input id="keyInput"><br>
+    <button onclick="checkKey()">Xác nhận</button>
+</div>
+
+<!-- TOOL -->
+<div id="toolBox" class="hidden">
+    <h3>Tạo Email</h3>
+
+    <!-- LOGOUT -->
+    <button onclick="logout()">Đăng xuất</button>
+
+    <br>
+    <input type="number" id="amount" placeholder="1-366"><br>
+    <button onclick="generate()">Tạo</button>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Mật khẩu</th>
+                <th>Copy</th>
+            </tr>
+        </thead>
+        <tbody id="list"></tbody>
+    </table>
+</div>
+
+<script>
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "123456";
+const KEY = "36labo";
+
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let usedEmails = new Set(JSON.parse(localStorage.getItem("emails")) || []);
+
+// chuyển form
+function showRegister(){
+    loginBox.classList.add("hidden");
+    registerBox.classList.remove("hidden");
+}
+function showLogin(){
+    registerBox.classList.add("hidden");
+    loginBox.classList.remove("hidden");
+}
+
+// toggle password
+function toggleInput(id, btn){
+    let input = document.getElementById(id);
+    if(input.type === "password"){
+        input.type = "text";
+        btn.textContent = "Ẩn";
+    } else {
+        input.type = "password";
+        btn.textContent = "Hiện";
+    }
+}
+
+// REGISTER (CHỐNG TRÙNG XỊN)
+function register(){
+    let u = regUser.value.trim().toLowerCase();
+    let p = regPass.value;
+
+    if(!u || !p) return alert("Nhập đủ!");
+
+    if(users.find(x => x.user.toLowerCase() === u)){
+        return alert("Tên tài khoản đã tồn tại!");
+    }
+
+    users.push({user: u, pass: p});
+    localStorage.setItem("users", JSON.stringify(users));
+
+    alert("Đăng ký thành công!");
+    showLogin();
+}
+
+// LOGIN
+function login(){
+    let u = loginUser.value.trim().toLowerCase();
+    let p = loginPass.value;
+
+    if(u === ADMIN_USER && p === ADMIN_PASS){
+        loginBox.classList.add("hidden");
+        keyBox.classList.remove("hidden");
+        return;
+    }
+
+    let ok = users.find(x => x.user === u && x.pass === p);
+
+    if(ok){
+        loginBox.classList.add("hidden");
+        toolBox.classList.remove("hidden");
+    } else {
+        alert("Sai tài khoản!");
+    }
+}
+
+// KEY
+function checkKey(){
+    if(keyInput.value === KEY){
+        keyBox.classList.add("hidden");
+        toolBox.classList.remove("hidden");
+    } else {
+        alert("Sai key!");
+    }
+}
+
+// LOGOUT
+function logout(){
+    toolBox.classList.add("hidden");
+    loginBox.classList.remove("hidden");
+    loginUser.value = "";
+    loginPass.value = "";
+}
+
+// EMAIL
+function genEmail(){
+    let e;
+    do{
+        e="dangdeptrai"+Math.floor(Math.random()*1000000000)+"@gmail.com";
+    }while(usedEmails.has(e));
+
+    usedEmails.add(e);
+    localStorage.setItem("emails", JSON.stringify([...usedEmails]));
+    return e;
+}
+
+function generate(){
+    let n=parseInt(amount.value);
+    if(!n || n<1 || n>366) return alert("1-366!");
+
+    list.innerHTML="";
+
+    for(let i=0;i<n;i++){
+        let email=genEmail();
+        let pass="123456789deptrai";
+
+        list.innerHTML += `
+        <tr>
+            <td>${email}</td>
+            <td>${pass}</td>
+            <td>
+                <button onclick="copyText('${email}')">Email</button>
+                <button onclick="copyText('${pass}')">MK</button>
+            </td>
+        </tr>`;
+    }
+}
+
+// copy
+function copyText(t){
+    navigator.clipboard.writeText(t);
+    alert("Đã copy");
+}
+</script>
+
+</body>
+</html>
